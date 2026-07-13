@@ -377,6 +377,8 @@
     #define    IDM_VIEW_TAB_NEXT                  (IDM_VIEW + 95)
     #define    IDM_VIEW_TAB_PREV                  (IDM_VIEW + 96)
     #define    IDM_VIEW_MONITORING                (IDM_VIEW + 97)
+    #define    IDM_VIEW_DECRYPT_LOG               (IDM_VIEW + 200)
+    #define    IDM_VIEW_DECRYPT_CFG               (IDM_VIEW + 201)
     #define    IDM_VIEW_TAB_MOVEFORWARD           (IDM_VIEW + 98)
     #define    IDM_VIEW_TAB_MOVEBACKWARD          (IDM_VIEW + 99)
     #define    IDM_VIEW_IN_FIREFOX                (IDM_VIEW + 100)

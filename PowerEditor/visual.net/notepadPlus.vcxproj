@@ -105,6 +105,7 @@
     <ClCompile Include="..\src\MISC\sha512\sha512.cpp" />
     <ClCompile Include="..\src\NppDarkMode.cpp" />
     <ClCompile Include="..\src\dpiManagerV2.cpp" />
+    <ClCompile Include="..\src\NppDecrypt.cpp" />
     <ClCompile Include="..\src\WinControls\AboutDlg\AboutDlg.cpp" />
     <ClCompile Include="..\src\WinControls\AnsiCharPanel\ansiCharPanel.cpp" />
     <ClCompile Include="..\src\ScintillaComponent\AutoCompletion.cpp" />

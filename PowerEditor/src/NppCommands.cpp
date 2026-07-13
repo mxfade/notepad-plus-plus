@@ -165,6 +165,20 @@ void Notepad_plus::command(int id)
 		}
 		break;
 
+		case IDM_VIEW_DECRYPT_LOG:
+		{
+			// Decrypt current file and replace contents
+			this->decryptCurrentFile();
+		}
+		break;
+
+		case IDM_VIEW_DECRYPT_CFG:
+		{
+			// Decrypt configuration file and open as new document
+			this->decryptConfigFile();
+		}
+		break;
+
 		case IDM_EDIT_INSERT_DATETIME_SHORT:
 		case IDM_EDIT_INSERT_DATETIME_LONG:
 		{

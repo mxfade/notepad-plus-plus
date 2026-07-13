@@ -427,6 +427,9 @@ Translation note:
 					<Item id="11009" name="内容长度降序"/>
 					<Item id="11010" name="修改时间升序"/>
 					<Item id="11011" name="修改时间降序"/>
+					
+					<Item id="44200" name="解密日志"/>
+					<Item id="44201" name="解密配置"/>
 				</Commands>
 			</Main>
 			<TabBar>

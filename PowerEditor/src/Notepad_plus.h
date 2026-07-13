@@ -279,6 +279,12 @@ public:
 
 	void changeReadOnlyUserModeForAllOpenedTabs(const bool ro);
 
+	// Decrypt current opened document (toolbar/menu action)
+	void decryptCurrentFile();
+
+	// decrypt configuration file and open as new document
+	void decryptConfigFile();
+
 private:
 	Notepad_plus_Window* _pPublicInterface = nullptr;
     Window* _pMainWindow = nullptr;

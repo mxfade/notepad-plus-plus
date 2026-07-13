@@ -367,6 +367,9 @@
   <ItemGroup>
     <Manifest Include="..\src\notepad++.exe.manifest" />
   </ItemGroup>
+  <ItemGroup>
+    <Xml Include="..\installer\nativeLang\chineseSimplified.xml" />
+  </ItemGroup>
   <Import Project="notepadPlus.uchardet.targets" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

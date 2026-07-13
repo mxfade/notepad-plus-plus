@@ -13,8 +13,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Lexilla", "..\..\lexilla\sr
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Scintilla", "..\..\scintilla\win32\Scintilla.vcxproj", "{19CCA8B8-46B9-4609-B7CE-198DA19F07BD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FingerPrintHelper", "..\..\..\CencorpWorks\1500ad_soft\Code\FingerPrintHelper\FingerPrintHelper.csproj", "{235366A3-3E3A-4672-B42C-200E45AFE391}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -75,22 +73,6 @@ Global
 		{19CCA8B8-46B9-4609-B7CE-198DA19F07BD}.Release|Win32.Build.0 = Release|Win32
 		{19CCA8B8-46B9-4609-B7CE-198DA19F07BD}.Release|x64.ActiveCfg = Release|x64
 		{19CCA8B8-46B9-4609-B7CE-198DA19F07BD}.Release|x64.Build.0 = Release|x64
-		{235366A3-3E3A-4672-B42C-200E45AFE391}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{235366A3-3E3A-4672-B42C-200E45AFE391}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{235366A3-3E3A-4672-B42C-200E45AFE391}.Debug|ARM64.ActiveCfg = Debug|Any CPU
-		{235366A3-3E3A-4672-B42C-200E45AFE391}.Debug|ARM64.Build.0 = Debug|Any CPU
-		{235366A3-3E3A-4672-B42C-200E45AFE391}.Debug|Win32.ActiveCfg = Debug|Any CPU
-		{235366A3-3E3A-4672-B42C-200E45AFE391}.Debug|Win32.Build.0 = Debug|Any CPU
-		{235366A3-3E3A-4672-B42C-200E45AFE391}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{235366A3-3E3A-4672-B42C-200E45AFE391}.Debug|x64.Build.0 = Debug|Any CPU
-		{235366A3-3E3A-4672-B42C-200E45AFE391}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{235366A3-3E3A-4672-B42C-200E45AFE391}.Release|Any CPU.Build.0 = Release|Any CPU
-		{235366A3-3E3A-4672-B42C-200E45AFE391}.Release|ARM64.ActiveCfg = Release|Any CPU
-		{235366A3-3E3A-4672-B42C-200E45AFE391}.Release|ARM64.Build.0 = Release|Any CPU
-		{235366A3-3E3A-4672-B42C-200E45AFE391}.Release|Win32.ActiveCfg = Release|Any CPU
-		{235366A3-3E3A-4672-B42C-200E45AFE391}.Release|Win32.Build.0 = Release|Any CPU
-		{235366A3-3E3A-4672-B42C-200E45AFE391}.Release|x64.ActiveCfg = Release|Any CPU
-		{235366A3-3E3A-4672-B42C-200E45AFE391}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

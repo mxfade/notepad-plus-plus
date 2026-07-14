@@ -280,7 +280,12 @@ public:
 	void changeReadOnlyUserModeForAllOpenedTabs(const bool ro);
 
 	// Decrypt current opened document (toolbar/menu action)
-	void decryptCurrentFile();
+	void decryptLogFile();
+
+	// Auto-detect encrypted file type and decrypt accordingly:
+	// If file starts with "ENCRYPTEDv1:" then decryptConfigFile() is used,
+	// otherwise decryptLogFile() is used.
+	void decryptAuto();
 
 	// decrypt configuration file and open as new document
 	void decryptConfigFile();

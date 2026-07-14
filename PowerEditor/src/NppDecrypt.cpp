@@ -50,6 +50,60 @@ INT_PTR CALLBACK DecryptDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM l
 	return FALSE;
 }
 
+// Auto-detect encrypted file type and dispatch to appropriate decrypt method.
+void Notepad_plus::decryptAuto()
+{
+	const char* magic = "ENCRYPTEDv1:";
+	size_t magicLen = strlen(magic);
+	bool hasMagic = false;
+
+	// Try to read from saved file on disk first
+	const wchar_t* fullPath = nullptr;
+	if (_pEditView && _pEditView->getCurrentBuffer())
+		fullPath = _pEditView->getCurrentBuffer()->getFullPathName();
+
+	if (fullPath && fullPath[0] != L'\0')
+	{
+		HANDLE hFile = CreateFileW(fullPath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		if (hFile != INVALID_HANDLE_VALUE)
+		{
+			DWORD toRead = (DWORD)magicLen;
+			std::vector<char> buf(toRead);
+			DWORD read = 0;
+			if (ReadFile(hFile, buf.data(), toRead, &read, NULL) && read >= (DWORD)magicLen)
+			{
+				if (memcmp(buf.data(), magic, magicLen) == 0)
+					hasMagic = true;
+			}
+			CloseHandle(hFile);
+		}
+	}
+
+	// If not available on disk, inspect in-memory text start
+	if (!hasMagic)
+	{
+		ScintillaEditView* pView = _pEditView;
+		if (pView)
+		{
+			size_t docLen = pView->getCurrentDocLen();
+			size_t checkLen = docLen < magicLen ? docLen : magicLen;
+			if (checkLen >= 1)
+			{
+				std::wstring start = pView->getGenericTextAsString(0, checkLen);
+				const wchar_t* magicW = L"ENCRYPTEDv1:";
+				size_t magicWLen = wcslen(magicW);
+				if (start.size() >= magicWLen && start.compare(0, magicWLen, magicW) == 0)
+					hasMagic = true;
+			}
+		}
+	}
+
+	if (hasMagic)
+		decryptConfigFile();
+	else
+		decryptLogFile();
+}
+
 static std::vector<uint8_t> Base64DecodeWide(const std::wstring& src)
 {
 	std::vector<uint8_t> out;
@@ -148,7 +202,7 @@ static std::vector<uint8_t> GetAesKeyFromPassword(const std::wstring& password)
 	return bytes;
 }
 
-void Notepad_plus::decryptCurrentFile()
+void Notepad_plus::decryptLogFile()
 {
 	// show password dialog
 	INT_PTR dlgRes = DialogBoxParamW(_pPublicInterface->getHinst(), MAKEINTRESOURCEW(IDD_DECRYPT_DLG), _pPublicInterface->getHSelf(), DecryptDlgProc, 0);
@@ -228,16 +282,27 @@ void Notepad_plus::decryptCurrentFile()
 		if (trimmed.empty()) { outW.push_back(L'\n'); continue; }
 
 		auto combined = Base64DecodeWide(trimmed);
-		if (combined.size() < 16) continue;
+		if (combined.size() < 16) { // not an encrypted line, keep original
+			outW.append(ln);
+			outW.push_back(L'\n');
+			continue;
+		}
 
 		const BYTE* iv = combined.data();
 		const BYTE* cipher = combined.data() + 16;
 		DWORD cipherLen = (DWORD)(combined.size() - 16);
-		if (cipherLen == 0) continue;
+		if (cipherLen == 0) {
+			outW.append(ln);
+			outW.push_back(L'\n');
+			continue;
+		}
 
 		// set IV
 		if (!CryptSetKeyParam(hKey, KP_IV, const_cast<BYTE*>(iv), 0))
 		{
+			// failed to set IV, keep original line
+			outW.append(ln);
+			outW.push_back(L'\n');
 			continue;
 		}
 
@@ -247,6 +312,9 @@ void Notepad_plus::decryptCurrentFile()
 		DWORD dwLen = cipherLen;
 		if (!CryptDecrypt(hKey, 0, TRUE, 0, buf.data(), &dwLen))
 		{
+			// decryption failed for this line, keep original
+			outW.append(ln);
+			outW.push_back(L'\n');
 			continue;
 		}
 

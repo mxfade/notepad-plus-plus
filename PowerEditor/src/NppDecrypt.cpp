@@ -13,6 +13,7 @@
 static const wchar_t* DEFAULT_DECRYPT_PASSWORD = L"7@yiZxbzZ3kX+t+T_vdpV2_vo@yL6k#C";
 
 static wchar_t g_decrypt_password[512] = {0};
+namespace fs = std::filesystem;
 
 INT_PTR CALLBACK DecryptDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -166,6 +167,22 @@ void Notepad_plus::decryptCurrentFile()
 	size_t docLen = pView->getCurrentDocLen();
 	std::wstring text = pView->getGenericTextAsString(0, docLen);
 
+	std::wstring newTabName = L"decrypted";
+	const wchar_t* fn_name = pView->getCurrentBuffer()->getFileName();
+	if (fn_name && fn_name[0] != L'\0')
+	{
+		std::wstring base(fn_name);
+		// extract file name and extension using string operations (avoids <filesystem> dependency)
+		std::wstring filename = base;
+		// remove any path components if present
+		size_t sep = filename.find_last_of(L"\\/");
+		if (sep != std::wstring::npos) filename = filename.substr(sep + 1);
+		size_t pos = filename.find_last_of(L'.');
+		if (pos == std::wstring::npos || pos == 0)
+			newTabName = filename + L"_解密"; // no extension found
+		else
+			newTabName = filename.substr(0, pos) + L"_解密" + filename.substr(pos);
+	}
 	// split lines
 	std::vector<std::wstring> lines;
 	size_t start = 0;
@@ -248,6 +265,18 @@ void Notepad_plus::decryptCurrentFile()
 		pViewNew->execute(SCI_SETTEXT, 0, reinterpret_cast<LPARAM>(outUtf8.c_str()));
 	}
 
+	// rename the new untitled tab to original file name + "_解密"
+	{
+		/*const wchar_t* origName = nullptr;*/
+		if (_pEditView && _pEditView->getCurrentBuffer())
+		{
+			// before fileNew() the current buffer was the original one; but after fileNew() current buffer is new
+			// we saved original file name by reading from previous buffer earlier: try to get from pView (we used pView initially)
+		}
+
+		fileRenameUntitledPluginAPI(BUFFER_INVALID, newTabName.c_str());
+	}
+
 	// cleanup
 	CryptDestroyKey(hKey);
 	CryptReleaseContext(hProv, 0);
@@ -273,6 +302,22 @@ void Notepad_plus::decryptConfigFile()
 	{
 		MessageBoxW(_pPublicInterface->getHSelf(), L"当前文档未保存到磁盘，无法按文件字节解密。请先保存文件。", L"无法解密", MB_ICONWARNING);
 		return;
+	}
+
+	std::wstring newTabName = L"decrypted";
+	const wchar_t* fn_name = _pEditView->getCurrentBuffer()->getFileName();
+	if (fn_name && fn_name[0] != L'\0')
+	{
+		std::wstring base(fn_name);
+		// extract file name and extension using string operations (avoids <filesystem> dependency)
+		std::wstring filename = base;
+		size_t sep = filename.find_last_of(L"\\/");
+		if (sep != std::wstring::npos) filename = filename.substr(sep + 1);
+		size_t pos = filename.find_last_of(L'.');
+		if (pos == std::wstring::npos || pos == 0)
+			newTabName = filename + L"_解密";
+		else
+			newTabName = filename.substr(0, pos) + L"_解密" + filename.substr(pos);
 	}
 
 	// read file bytes from disk
@@ -431,5 +476,16 @@ void Notepad_plus::decryptConfigFile()
 	{
 		std::string outUtf8 = WideToUtf8(plain);
 		pView->execute(SCI_SETTEXT, 0, reinterpret_cast<LPARAM>(outUtf8.c_str()));
+	}
+	// rename the new untitled tab to original file name + "_解密"
+	{
+		/*const wchar_t* origName = nullptr;*/
+		if (_pEditView && _pEditView->getCurrentBuffer())
+		{
+			// before fileNew() the current buffer was the original one; but after fileNew() current buffer is new
+			// we saved original file name by reading from previous buffer earlier: try to get from pView (we used pView initially)
+		}
+		
+		fileRenameUntitledPluginAPI(BUFFER_INVALID, newTabName.c_str());
 	}
 }

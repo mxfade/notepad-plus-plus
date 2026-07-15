@@ -290,6 +290,15 @@ public:
 	// decrypt configuration file and open as new document
 	void decryptConfigFile();
 
+	// Encrypt current document as config (binary) and save to disk
+	void encryptConfigFile();
+
+	// Encrypt current document as log (per-line Base64 with IV prefix) and open new document
+	void encryptLogFile();
+
+	// Auto-detect and encrypt: if current file extension is .log use encryptLogFile(), else encryptConfigFile()
+	void encryptAuto();
+
 private:
 	Notepad_plus_Window* _pPublicInterface = nullptr;
     Window* _pMainWindow = nullptr;

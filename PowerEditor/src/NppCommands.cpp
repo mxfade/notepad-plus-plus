@@ -173,7 +173,7 @@ void Notepad_plus::command(int id)
 
 		case IDM_VIEW_ENCRYPT:
 		{
-			//this->encryptAuto();
+			this->encryptAuto();
 		}
 		break;
 

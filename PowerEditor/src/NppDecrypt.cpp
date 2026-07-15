@@ -27,6 +27,8 @@ INT_PTR CALLBACK DecryptDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM l
 		SendDlgItemMessageW(hDlg, IDC_DECRYPT_PASSWORD, EM_SETPASSWORDCHAR, (WPARAM)'*', 0);
 		return TRUE;
 	}
+
+
 	case WM_COMMAND:
 		if (LOWORD(wParam) == IDOK)
 		{
@@ -50,59 +52,6 @@ INT_PTR CALLBACK DecryptDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM l
 	return FALSE;
 }
 
-// Auto-detect encrypted file type and dispatch to appropriate decrypt method.
-void Notepad_plus::decryptAuto()
-{
-	const char* magic = "ENCRYPTEDv1:";
-	size_t magicLen = strlen(magic);
-	bool hasMagic = false;
-
-	// Try to read from saved file on disk first
-	const wchar_t* fullPath = nullptr;
-	if (_pEditView && _pEditView->getCurrentBuffer())
-		fullPath = _pEditView->getCurrentBuffer()->getFullPathName();
-
-	if (fullPath && fullPath[0] != L'\0')
-	{
-		HANDLE hFile = CreateFileW(fullPath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-		if (hFile != INVALID_HANDLE_VALUE)
-		{
-			DWORD toRead = (DWORD)magicLen;
-			std::vector<char> buf(toRead);
-			DWORD read = 0;
-			if (ReadFile(hFile, buf.data(), toRead, &read, NULL) && read >= (DWORD)magicLen)
-			{
-				if (memcmp(buf.data(), magic, magicLen) == 0)
-					hasMagic = true;
-			}
-			CloseHandle(hFile);
-		}
-	}
-
-	// If not available on disk, inspect in-memory text start
-	if (!hasMagic)
-	{
-		ScintillaEditView* pView = _pEditView;
-		if (pView)
-		{
-			size_t docLen = pView->getCurrentDocLen();
-			size_t checkLen = docLen < magicLen ? docLen : magicLen;
-			if (checkLen >= 1)
-			{
-				std::wstring start = pView->getGenericTextAsString(0, checkLen);
-				const wchar_t* magicW = L"ENCRYPTEDv1:";
-				size_t magicWLen = wcslen(magicW);
-				if (start.size() >= magicWLen && start.compare(0, magicWLen, magicW) == 0)
-					hasMagic = true;
-			}
-		}
-	}
-
-	if (hasMagic)
-		decryptConfigFile();
-	else
-		decryptFile();
-}
 
 static std::vector<uint8_t> Base64DecodeWide(const std::wstring& src)
 {
@@ -201,6 +150,240 @@ static std::vector<uint8_t> GetAesKeyFromPassword(const std::wstring& password)
 	}
 	return bytes;
 }
+
+// Base64 encode helper
+static std::wstring Base64EncodeWide(const uint8_t* data, size_t len)
+{
+	std::wstring out;
+	if (!data || len == 0) return out;
+	DWORD needed = 0;
+	if (!CryptBinaryToStringW(data, (DWORD)len, CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, NULL, &needed))
+		return out;
+	out.resize(needed);
+	if (!CryptBinaryToStringW(data, (DWORD)len, CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, out.data(), &needed))
+		return L"";
+	if (!out.empty() && out.back() == L'\0') out.pop_back();
+	return out;
+}
+
+// Encrypt current document per-line (log style): produce Base64 of IV(16)|cipher per line and open new document
+void Notepad_plus::encryptLogFile()
+{
+	// show password dialog
+	INT_PTR dlgRes = DialogBoxParamW(_pPublicInterface->getHinst(), MAKEINTRESOURCEW(IDD_DECRYPT_DLG), _pPublicInterface->getHSelf(), DecryptDlgProc, 0);
+	if (dlgRes != IDOK) return;
+
+	std::wstring password = g_decrypt_password;
+	if (password.empty()) password = DEFAULT_DECRYPT_PASSWORD;
+
+	ScintillaEditView* pView = _pEditView;
+	if (!pView) return;
+
+	size_t docLen = pView->getCurrentDocLen();
+	std::wstring text = pView->getGenericTextAsString(0, docLen);
+
+	std::wstring newTabName = L"decrypted";
+	const wchar_t* fn_name = pView->getCurrentBuffer()->getFileName();
+	if (fn_name && fn_name[0] != L'\0')
+	{
+		std::wstring base(fn_name);
+		// extract file name and extension using string operations (avoids <filesystem> dependency)
+		newTabName = base;
+	}
+	// split lines
+	// prepare crypto
+	HCRYPTPROV hProv = 0;
+	if (!CryptAcquireContextW(&hProv, NULL, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, CRYPT_VERIFYCONTEXT)) return;
+
+	std::vector<uint8_t> key = GetAesKeyFromPassword(password);
+	HCRYPTKEY hKey = ImportAesKey(hProv, key);
+	if (!hKey) { CryptReleaseContext(hProv, 0); return; }
+
+	std::wstring outW;
+	// split lines
+	size_t start = 0;
+	while (start < text.size())
+	{
+		size_t pos = text.find_first_of(L"\r\n", start);
+		std::wstring ln;
+		if (pos == std::wstring::npos) { ln = text.substr(start); start = text.size(); }
+		else { ln = text.substr(start, pos - start); size_t n = 1; if (text[pos] == L'\r' && pos + 1 < text.size() && text[pos+1] == L'\n') n = 2; start = pos + n; }
+
+		std::wstring trimmed = ln;
+		while (!trimmed.empty() && iswspace(trimmed.back())) trimmed.pop_back();
+		size_t idx = 0; while (idx < trimmed.size() && iswspace(trimmed[idx])) idx++; if (idx) trimmed.erase(0, idx);
+		if (trimmed.empty()) { outW.push_back(L'\n'); continue; }
+
+		std::string plainUtf8 = WideToUtf8(trimmed);
+		DWORD plainLen = (DWORD)plainUtf8.size();
+
+		BYTE iv[16] = {0};
+		if (!CryptGenRandom(hProv, 16, iv)) memset(iv, 0, 16);
+
+		if (!CryptSetKeyParam(hKey, KP_IV, iv, 0)) { outW.append(ln); outW.push_back(L'\n'); continue; }
+
+		DWORD bufLen = plainLen + 16;
+		std::vector<BYTE> buf(bufLen);
+		memcpy(buf.data(), plainUtf8.data(), plainLen);
+		DWORD dwLen = plainLen;
+		if (!CryptEncrypt(hKey, 0, TRUE, 0, buf.data(), &dwLen, bufLen)) { outW.append(ln); outW.push_back(L'\n'); continue; }
+
+		std::vector<BYTE> combined(16 + dwLen);
+		memcpy(combined.data(), iv, 16);
+		memcpy(combined.data() + 16, buf.data(), dwLen);
+
+		std::wstring b64 = Base64EncodeWide(combined.data(), combined.size());
+		outW.append(b64);
+		outW.push_back(L'\n');
+	}
+
+	fileNew();
+	ScintillaEditView* pViewNew = _pEditView;
+	if (pViewNew)
+	{
+		std::string outUtf8 = WideToUtf8(outW);
+		pViewNew->execute(SCI_SETTEXT, 0, reinterpret_cast<LPARAM>(outUtf8.c_str()));
+	}
+
+	fileRenameUntitledPluginAPI(BUFFER_INVALID, newTabName.c_str());
+	CryptDestroyKey(hKey);
+	CryptReleaseContext(hProv, 0);
+}
+
+// Encrypt current document as config (binary) and overwrite file on disk (requires saved file)
+void Notepad_plus::encryptConfigFile()
+{
+	// show password dialog
+	INT_PTR dlgRes = DialogBoxParamW(_pPublicInterface->getHinst(), MAKEINTRESOURCEW(IDD_DECRYPT_DLG), _pPublicInterface->getHSelf(), DecryptDlgProc, 0);
+	if (dlgRes != IDOK) return;
+
+	std::wstring password = g_decrypt_password;
+	if (password.empty()) password = DEFAULT_DECRYPT_PASSWORD;
+
+	const wchar_t* fullPath = nullptr;
+	if (_pEditView && _pEditView->getCurrentBuffer()) fullPath = _pEditView->getCurrentBuffer()->getFullPathName();
+	if (!fullPath || fullPath[0] == L'\0') { MessageBoxW(_pPublicInterface->getHSelf(), L"当前文档未保存到磁盘，无法按文件字节加密。请先保存文件。", L"无法加密", MB_ICONWARNING); return; }
+
+	ScintillaEditView* pView = _pEditView; if (!pView) return;
+	size_t docLen = pView->getCurrentDocLen(); std::wstring text = pView->getGenericTextAsString(0, docLen);
+	std::string plainUtf8 = WideToUtf8(text);
+
+	// prepare a name for the new tab that will display the encrypted payload
+	std::wstring newTabName = L"encrypted";
+	const wchar_t* fn_name = pView->getCurrentBuffer()->getFileName();
+	if (fn_name && fn_name[0] != L'\0')
+	{
+		std::wstring base(fn_name);
+		newTabName = base;
+	}
+
+	std::vector<uint8_t> key = GetAesKeyFromPassword(password);
+	BCRYPT_ALG_HANDLE hAlg = NULL; BCRYPT_KEY_HANDLE hKey = NULL;
+	NTSTATUS status = BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_AES_ALGORITHM, NULL, 0);
+	if (!BCRYPT_SUCCESS(status)) return;
+	status = BCryptSetProperty(hAlg, BCRYPT_CHAINING_MODE, (PUCHAR)BCRYPT_CHAIN_MODE_ECB, (ULONG)sizeof(BCRYPT_CHAIN_MODE_ECB), 0);
+	if (!BCRYPT_SUCCESS(status)) { BCryptCloseAlgorithmProvider(hAlg,0); return; }
+	status = BCryptGenerateSymmetricKey(hAlg, &hKey, NULL, 0, (PUCHAR)key.data(), (ULONG)key.size(), 0);
+	if (!BCRYPT_SUCCESS(status)) { BCryptCloseAlgorithmProvider(hAlg,0); return; }
+
+	ULONG cbOutput = 0;
+	status = BCryptEncrypt(hKey, (PUCHAR)plainUtf8.data(), (ULONG)plainUtf8.size(), NULL, NULL, 0, NULL, 0, &cbOutput, BCRYPT_BLOCK_PADDING);
+	if (!BCRYPT_SUCCESS(status)) { BCryptDestroyKey(hKey); BCryptCloseAlgorithmProvider(hAlg,0); return; }
+	std::vector<BYTE> cipher(cbOutput);
+	status = BCryptEncrypt(hKey, (PUCHAR)plainUtf8.data(), (ULONG)plainUtf8.size(), NULL, NULL, 0, cipher.data(), cbOutput, &cbOutput, BCRYPT_BLOCK_PADDING);
+	if (!BCRYPT_SUCCESS(status)) { BCryptDestroyKey(hKey); BCryptCloseAlgorithmProvider(hAlg,0); return; }
+	cipher.resize(cbOutput);
+
+	std::wstring outW;
+	outW.append(L"ENCRYPTEDv1:");
+	if (!cipher.empty())
+	{
+	
+		outW.reserve(outW.size() + cipher.size());
+		for (size_t i = 0; i < cipher.size(); ++i)
+			outW.push_back(static_cast<wchar_t>(cipher[i]));
+	}
+
+	fileNew();
+	ScintillaEditView* pViewNew = _pEditView;
+	if (pViewNew)
+	{
+		std::string outUtf8 = WideToUtf8(outW);
+		pViewNew->execute(SCI_SETTEXT, 0, reinterpret_cast<LPARAM>(outUtf8.c_str()));
+	}
+
+	fileRenameUntitledPluginAPI(BUFFER_INVALID, newTabName.c_str());
+
+	BCryptDestroyKey(hKey); 
+	BCryptCloseAlgorithmProvider(hAlg,0);
+}
+
+// Auto-detect and encrypt: use log method for .log, otherwise config method
+void Notepad_plus::encryptAuto()
+{
+	const wchar_t* fn_name = nullptr;
+	if (_pEditView && _pEditView->getCurrentBuffer()) fn_name = _pEditView->getCurrentBuffer()->getFileName();
+	std::wstring filename = fn_name ? fn_name : L"";
+	size_t sep = filename.find_last_of(L"\\/"); if (sep != std::wstring::npos) filename = filename.substr(sep + 1);
+	size_t pos = filename.find_last_of(L'.'); std::wstring ext = (pos == std::wstring::npos) ? L"" : filename.substr(pos);
+	for (auto &c : ext) c = towlower(c);
+	if (ext == L".log") encryptLogFile(); else encryptConfigFile();
+}
+
+// Auto-detect encrypted file type and dispatch to appropriate decrypt method. (patched)
+void Notepad_plus::decryptAuto()
+{
+	const char* magic = "ENCRYPTEDv1:";
+	size_t magicLen = strlen(magic);
+	bool hasMagic = false;
+
+	// Try to read from saved file on disk first
+	const wchar_t* fullPath = nullptr;
+	if (_pEditView && _pEditView->getCurrentBuffer())
+		fullPath = _pEditView->getCurrentBuffer()->getFullPathName();
+
+	if (fullPath && fullPath[0] != L'\0')
+	{
+		HANDLE hFile = CreateFileW(fullPath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		if (hFile != INVALID_HANDLE_VALUE)
+		{
+			DWORD toRead = (DWORD)magicLen;
+			std::vector<char> buf(toRead);
+			DWORD read = 0;
+			if (ReadFile(hFile, buf.data(), toRead, &read, NULL) && read >= (DWORD)magicLen)
+			{
+				if (memcmp(buf.data(), magic, magicLen) == 0)
+					hasMagic = true;
+			}
+			CloseHandle(hFile);
+		}
+	}
+
+	// If not available on disk, inspect in-memory text start
+	if (!hasMagic)
+	{
+		ScintillaEditView* pView = _pEditView;
+		if (pView)
+		{
+			size_t docLen = pView->getCurrentDocLen();
+			size_t checkLen = docLen < magicLen ? docLen : magicLen;
+			if (checkLen >= 1)
+			{
+				std::wstring start = pView->getGenericTextAsString(0, checkLen);
+				const wchar_t* magicW = L"ENCRYPTEDv1:";
+				size_t magicWLen = wcslen(magicW);
+				if (start.size() >= magicWLen && start.compare(0, magicWLen, magicW) == 0)
+					hasMagic = true;
+			}
+		}
+	}
+
+	if (hasMagic)
+		decryptConfigFile();
+	else
+		decryptFile();
+}
+
 
 void Notepad_plus::decryptFile()
 {

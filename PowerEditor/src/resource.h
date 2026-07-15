@@ -102,8 +102,8 @@
 #define IDI_VIEW_MONITORING_DIS_ICON      246
 #define IDI_VIEW_DOCLIST_ICON             247
 // Decrypt icons (light/regular)
-#define IDI_VIEW_DECRYPT_LOG_ICON         248
-#define IDI_VIEW_DECRYPT_CFG_ICON         249
+#define IDI_VIEW_DECRYPT_ICON         248
+#define IDI_VIEW_ENCRYPT_ICON         249
 
 //
 // TOOLBAR ICO - set 1, Dark Mode
@@ -155,8 +155,8 @@
 #define IDI_VIEW_MONITORING_ICON_DM       295
 #define IDI_VIEW_MONITORING_DIS_ICON_DM   296
 #define IDI_VIEW_DOCLIST_ICON_DM          297
-#define IDI_VIEW_DECRYPT_LOG_ICON_DM      298
-#define IDI_VIEW_DECRYPT_CFG_ICON_DM      299
+#define IDI_VIEW_DECRYPT_ICON_DM      298
+#define IDI_VIEW_ENCRYPT_ICON_DM      299
 
 //
 // TOOLBAR ICO - set 2
@@ -208,8 +208,8 @@
 #define IDI_VIEW_MONITORING_ICON2         345
 #define IDI_VIEW_MONITORING_DIS_ICON2     346
 #define IDI_VIEW_DOCLIST_ICON2            347
-#define IDI_VIEW_DECRYPT_LOG_ICON2        348
-#define IDI_VIEW_DECRYPT_CFG_ICON2        349
+#define IDI_VIEW_DECRYPT_ICON2        348
+#define IDI_VIEW_ENCRYPT_ICON2        349
 
 //
 // TOOLBAR ICO - set 2, Dark Mode
@@ -261,8 +261,8 @@
 #define IDI_VIEW_MONITORING_ICON_DM2      395
 #define IDI_VIEW_MONITORING_DIS_ICON_DM2  396
 #define IDI_VIEW_DOCLIST_ICON_DM2         397
-#define IDI_VIEW_DECRYPT_LOG_ICON_DM2     398
-#define IDI_VIEW_DECRYPT_CFG_ICON_DM2     399
+#define IDI_VIEW_DECRYPT_ICON_DM2     398
+#define IDI_VIEW_ENCRYPT_ICON_DM2     399
 
 
 
@@ -399,8 +399,8 @@
 #define IDR_FILEBROWSER_ICO         1542
 #define IDR_FILEMONITORING          1543
 // Decrypt toolbar bitmaps
-#define IDR_DECRYPT_CFG              1600
-#define IDR_DECRYPT_LOG              1601
+#define IDR_ENCRYPT              1600
+#define IDR_DECRYPT              1601
 
 // Decrypt dialog
 #define IDD_DECRYPT_DLG              7001

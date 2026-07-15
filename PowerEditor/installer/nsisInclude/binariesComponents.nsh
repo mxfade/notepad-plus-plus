@@ -93,9 +93,7 @@ ${MementoSection} "Auto-Updater" AutoUpdater
 		File "..\bin\updater\LICENSE"
 		File "..\bin\updater\README.md"
 		File "..\bin\updater\updater.ico"
-!endif
-		SetOutPath "$PLUGINSDIR\gupLocalization"
-		File "..\bin\updater\translations\"
+!endif	
 	${EndIf}
 	
 ${MementoSectionEnd}

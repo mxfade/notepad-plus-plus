@@ -359,7 +359,7 @@ ${MementoSection} "Context Menu Entry" explorerContextMenu
 		File /oname=$INSTDIR\contextMenu\NppShell.dll "..\bin64\NppShell.x64.dll"
 	${Else}
 		; We are running on 32bit Windows, so no need for the msix file, since there is no way this could even be upgraded to Windows 11.
-		File /oname=$INSTDIR\contextMenu\NppShell.dll "..\bin\NppShell.x86.dll"
+		;File /oname=$INSTDIR\contextMenu\NppShell.dll "..\bin\NppShell.x86.dll"
 	${EndIf}
 !endif
 

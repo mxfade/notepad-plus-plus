@@ -101,7 +101,7 @@ void Notepad_plus::decryptAuto()
 	if (hasMagic)
 		decryptConfigFile();
 	else
-		decryptLogFile();
+		decryptFile();
 }
 
 static std::vector<uint8_t> Base64DecodeWide(const std::wstring& src)
@@ -202,7 +202,7 @@ static std::vector<uint8_t> GetAesKeyFromPassword(const std::wstring& password)
 	return bytes;
 }
 
-void Notepad_plus::decryptLogFile()
+void Notepad_plus::decryptFile()
 {
 	// show password dialog
 	INT_PTR dlgRes = DialogBoxParamW(_pPublicInterface->getHinst(), MAKEINTRESOURCEW(IDD_DECRYPT_DLG), _pPublicInterface->getHSelf(), DecryptDlgProc, 0);

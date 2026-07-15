@@ -165,19 +165,15 @@ void Notepad_plus::command(int id)
 		}
 		break;
 
-		case IDM_VIEW_DECRYPT_LOG:
+		case IDM_VIEW_DECRYPT:
 		{
-			// Decrypt current file and replace contents
-			//this->decryptLogFile();
 			this->decryptAuto();
 		}
 		break;
 
-		case IDM_VIEW_DECRYPT_CFG:
+		case IDM_VIEW_ENCRYPT:
 		{
-			// Decrypt configuration file and open as new document
-			//this->decryptConfigFile();
-			this->decryptAuto();
+			//this->encryptAuto();
 		}
 		break;
 

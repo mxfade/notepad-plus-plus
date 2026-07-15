@@ -117,8 +117,8 @@ IDI_VIEW_FUNCLIST_ICON          ICON      "icons/light/toolbar/regular/funcList_
 IDI_VIEW_FILEBROWSER_ICON       ICON      "icons/light/toolbar/regular/fileBrowser_off.ico"
 IDI_VIEW_MONITORING_ICON        ICON      "icons/light/toolbar/regular/monitoring_off.ico"
 IDI_VIEW_MONITORING_DIS_ICON    ICON      "icons/light/toolbar/regular/monitoring_dis.ico"
-IDI_VIEW_DECRYPT_LOG_ICON       ICON      "icons/light/toolbar/regular/decryptlog.ico"
-IDI_VIEW_DECRYPT_CFG_ICON       ICON      "icons/light/toolbar/regular/decryptcfg.ico"
+IDI_VIEW_DECRYPT_ICON       ICON      "icons/light/toolbar/regular/decrypt.ico"
+IDI_VIEW_ENCRYPT_ICON       ICON      "icons/light/toolbar/regular/encrypt.ico"
 //
 // TOOLBAR ICO - set 2
 //
@@ -169,8 +169,8 @@ IDI_VIEW_FUNCLIST_ICON2         ICON      "icons/light/toolbar/filled/funcList_o
 IDI_VIEW_FILEBROWSER_ICON2      ICON      "icons/light/toolbar/filled/fileBrowser_off.ico"
 IDI_VIEW_MONITORING_ICON2       ICON      "icons/light/toolbar/filled/monitoring_off.ico"
 IDI_VIEW_MONITORING_DIS_ICON2   ICON      "icons/light/toolbar/filled/monitoring_dis.ico"
-IDI_VIEW_DECRYPT_LOG_ICON2      ICON      "icons/light/toolbar/filled/decryptlog.ico"
-IDI_VIEW_DECRYPT_CFG_ICON2      ICON      "icons/light/toolbar/filled/decryptcfg.ico"
+IDI_VIEW_DECRYPT_ICON2      ICON      "icons/light/toolbar/filled/decrypt.ico"
+IDI_VIEW_ENCRYPT_ICON2      ICON      "icons/light/toolbar/filled/encrypt.ico"
 
 //
 // TOOLBAR ICO - set 1 Dark Mode
@@ -222,8 +222,8 @@ IDI_VIEW_FUNCLIST_ICON_DM          ICON      "icons/dark/toolbar/regular/funcLis
 IDI_VIEW_FILEBROWSER_ICON_DM       ICON      "icons/dark/toolbar/regular/fileBrowser_off.ico"
 IDI_VIEW_MONITORING_ICON_DM        ICON      "icons/dark/toolbar/regular/monitoring_off.ico"
 IDI_VIEW_MONITORING_DIS_ICON_DM    ICON      "icons/dark/toolbar/regular/monitoring_dis.ico"
-IDI_VIEW_DECRYPT_LOG_ICON_DM       ICON      "icons/dark/toolbar/regular/decryptlog.ico"
-IDI_VIEW_DECRYPT_CFG_ICON_DM       ICON      "icons/dark/toolbar/regular/decryptcfg.ico"
+IDI_VIEW_DECRYPT_ICON_DM       ICON      "icons/dark/toolbar/regular/decrypt.ico"
+IDI_VIEW_ENCRYPT_ICON_DM       ICON      "icons/dark/toolbar/regular/encrypt.ico"
 //
 // TOOLBAR ICO - set 2 Dark Mode
 //
@@ -274,8 +274,8 @@ IDI_VIEW_FUNCLIST_ICON_DM2         ICON      "icons/dark/toolbar/filled/funcList
 IDI_VIEW_FILEBROWSER_ICON_DM2      ICON      "icons/dark/toolbar/filled/fileBrowser_off.ico"
 IDI_VIEW_MONITORING_ICON_DM2       ICON      "icons/dark/toolbar/filled/monitoring_off.ico"
 IDI_VIEW_MONITORING_DIS_ICON_DM2   ICON      "icons/dark/toolbar/filled/monitoring_dis.ico"
-IDI_VIEW_DECRYPT_LOG_ICON_DM2      ICON      "icons/dark/toolbar/filled/decryptlog.ico"
-IDI_VIEW_DECRYPT_CFG_ICON_DM2      ICON      "icons/dark/toolbar/filled/decryptcfg.ico"
+IDI_VIEW_DECRYPT_ICON_DM2      ICON      "icons/dark/toolbar/filled/decrypt.ico"
+IDI_VIEW_ENCRYPT_ICON_DM2      ICON      "icons/dark/toolbar/filled/encrypt.ico"
 
 
 
@@ -333,8 +333,8 @@ IDR_DOCLIST                     BITMAP    "icons/standard/toolbar/docList.bmp"
 IDR_FUNC_LIST                   BITMAP    "icons/standard/toolbar/funcList.bmp"
 IDR_FILEBROWSER                 BITMAP    "icons/standard/toolbar/fileBrowser.bmp"
 IDR_FILEMONITORING              BITMAP    "icons/standard/toolbar/monitoring.bmp"
-IDR_DECRYPT_CFG                 BITMAP    "icons/standard/toolbar/decryptcfg.bmp"
-IDR_DECRYPT_LOG                 BITMAP    "icons/standard/toolbar/decryptlog.bmp"
+IDR_ENCRYPT                 BITMAP    "icons/standard/toolbar/decrypt.bmp"
+IDR_DECRYPT                 BITMAP    "icons/standard/toolbar/encrypt.bmp"
 
 IDR_CLOSETAB                    ICON        "icons/standard/tabbar/closeTabButton.ico"
 IDR_CLOSETAB_INACT              ICON        "icons/standard/tabbar/closeTabButton_hoverOnTab.ico"

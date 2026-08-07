@@ -721,7 +721,7 @@ void Notepad_plus::decryptConfigFile()
 	std::wstring plain = Utf8ToWide(reinterpret_cast<const char*>(plainBytes.data()), plainBytes.size());
 
 	// create new document and set its text
-	fileNew(); // open new document
+	//fileNew(); // open new document
 	ScintillaEditView* pView = _pEditView;
 	if (pView)
 	{
@@ -737,6 +737,6 @@ void Notepad_plus::decryptConfigFile()
 			// we saved original file name by reading from previous buffer earlier: try to get from pView (we used pView initially)
 		}
 		
-		fileRenameUntitledPluginAPI(BUFFER_INVALID, newTabName.c_str());
+		//fileRenameUntitledPluginAPI(BUFFER_INVALID, newTabName.c_str());
 	}
 }

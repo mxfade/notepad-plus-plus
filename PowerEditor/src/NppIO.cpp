@@ -482,6 +482,7 @@ BufferID Notepad_plus::doOpen(const wstring& fileName, bool isRecursive, bool is
 
 
         loadBufferIntoView(buffer, currentView());
+		decryptEncryptedJsonXml(buffer);
 
         if (_pTrayIco)
         {

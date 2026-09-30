@@ -12,47 +12,6 @@
 // Default password as requested
 static const wchar_t* DEFAULT_DECRYPT_PASSWORD = L"7@yiZxbzZ3kX+t+T_vdpV2_vo@yL6k#C";
 
-static wchar_t g_decrypt_password[512] = {0};
-namespace fs = std::filesystem;
-
-INT_PTR CALLBACK DecryptDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
-{
-	switch (message)
-	{
-	case WM_INITDIALOG:
-	{
-		// set default password
-		SetDlgItemTextW(hDlg, IDC_DECRYPT_PASSWORD, DEFAULT_DECRYPT_PASSWORD);
-		// set password char
-		SendDlgItemMessageW(hDlg, IDC_DECRYPT_PASSWORD, EM_SETPASSWORDCHAR, (WPARAM)'*', 0);
-		return TRUE;
-	}
-
-
-	case WM_COMMAND:
-		if (LOWORD(wParam) == IDOK)
-		{
-			// copy password to global buffer
-			GetDlgItemTextW(hDlg, IDC_DECRYPT_PASSWORD, g_decrypt_password, (int)ARRAYSIZE(g_decrypt_password));
-			EndDialog(hDlg, IDOK);
-			return TRUE;
-		}
-		else if (LOWORD(wParam) == IDCANCEL)
-		{
-			g_decrypt_password[0] = L'\0';
-			EndDialog(hDlg, IDCANCEL);
-			return TRUE;
-		}
-		break;
-	}
-	if (LOWORD(lParam) == IDCANCEL)
-	{
-
-	}
-	return FALSE;
-}
-
-
 static std::vector<uint8_t> Base64DecodeWide(const std::wstring& src)
 {
 	std::vector<uint8_t> out;
@@ -169,12 +128,7 @@ static std::wstring Base64EncodeWide(const uint8_t* data, size_t len)
 // Encrypt current document per-line (log style): produce Base64 of IV(16)|cipher per line and open new document
 void Notepad_plus::encryptLogFile()
 {
-	// show password dialog
-	INT_PTR dlgRes = DialogBoxParamW(_pPublicInterface->getHinst(), MAKEINTRESOURCEW(IDD_DECRYPT_DLG), _pPublicInterface->getHSelf(), DecryptDlgProc, 0);
-	if (dlgRes != IDOK) return;
-
-	std::wstring password = g_decrypt_password;
-	if (password.empty()) password = DEFAULT_DECRYPT_PASSWORD;
+	std::wstring password = DEFAULT_DECRYPT_PASSWORD;
 
 	ScintillaEditView* pView = _pEditView;
 	if (!pView) return;
@@ -253,12 +207,7 @@ void Notepad_plus::encryptLogFile()
 // Encrypt current document as config (binary) and overwrite file on disk (requires saved file)
 void Notepad_plus::encryptConfigFile()
 {
-	// show password dialog
-	INT_PTR dlgRes = DialogBoxParamW(_pPublicInterface->getHinst(), MAKEINTRESOURCEW(IDD_DECRYPT_DLG), _pPublicInterface->getHSelf(), DecryptDlgProc, 0);
-	if (dlgRes != IDOK) return;
-
-	std::wstring password = g_decrypt_password;
-	if (password.empty()) password = DEFAULT_DECRYPT_PASSWORD;
+	std::wstring password = DEFAULT_DECRYPT_PASSWORD;
 
 	const wchar_t* fullPath = nullptr;
 	if (_pEditView && _pEditView->getCurrentBuffer()) fullPath = _pEditView->getCurrentBuffer()->getFullPathName();
@@ -384,18 +333,46 @@ void Notepad_plus::decryptAuto()
 		decryptFile();
 }
 
+void Notepad_plus::decryptEncryptedJsonXml(BufferID buffer)
+{
+	if (!buffer)
+		return;
+
+	const wchar_t* fileName = buffer->getFileName();
+	if (!fileName || fileName[0] == L'\0')
+		return;
+
+	const wchar_t* extension = wcsrchr(fileName, L'.');
+	if (!extension || (_wcsicmp(extension, L".json") != 0 && _wcsicmp(extension, L".xml") != 0))
+		return;
+
+	const wchar_t* fullPath = buffer->getFullPathName();
+	if (!fullPath || fullPath[0] == L'\0')
+		return;
+
+	static constexpr char encryptedMagic[] = "ENCRYPTEDv1:";
+	HANDLE hFile = CreateFileW(fullPath, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+	if (hFile == INVALID_HANDLE_VALUE)
+		return;
+
+	char header[sizeof(encryptedMagic) - 1]{};
+	DWORD bytesRead = 0;
+	const bool hasMagic = ReadFile(hFile, header, sizeof(header), &bytesRead, nullptr)
+		&& bytesRead == sizeof(header)
+		&& memcmp(header, encryptedMagic, sizeof(header)) == 0;
+	CloseHandle(hFile);
+
+	if (hasMagic)
+	{
+		activateBuffer(buffer, currentView());
+		decryptConfigFile(fullPath);
+	}
+}
+
 
 void Notepad_plus::decryptFile()
 {
-	// show password dialog
-	INT_PTR dlgRes = DialogBoxParamW(_pPublicInterface->getHinst(), MAKEINTRESOURCEW(IDD_DECRYPT_DLG), _pPublicInterface->getHSelf(), DecryptDlgProc, 0);
-	if (dlgRes != IDOK)
-		return; // canceled
-
-	// get password from dialog global
-	std::wstring password = g_decrypt_password;
-	if (password.empty())
-		password = DEFAULT_DECRYPT_PASSWORD;
+	std::wstring password = DEFAULT_DECRYPT_PASSWORD;
 
 	// get current view
 	ScintillaEditView* pView = _pEditView;
@@ -533,21 +510,13 @@ void Notepad_plus::decryptFile()
 	CryptReleaseContext(hProv, 0);
 }
 
-void Notepad_plus::decryptConfigFile()
+void Notepad_plus::decryptConfigFile(const wchar_t* filePath)
 {
-	// show password dialog (same as decrypt log)
-	INT_PTR dlgRes = DialogBoxParamW(_pPublicInterface->getHinst(), MAKEINTRESOURCEW(IDD_DECRYPT_DLG), _pPublicInterface->getHSelf(), DecryptDlgProc, 0);
-	if (dlgRes != IDOK)
-		return; // canceled
-
-	// get password from dialog global
-	std::wstring password = g_decrypt_password;
-	if (password.empty())
-		password = DEFAULT_DECRYPT_PASSWORD;
+	std::wstring password = DEFAULT_DECRYPT_PASSWORD;
 
 	// get current file path
-	const wchar_t* fullPath = nullptr;
-	if (_pEditView && _pEditView->getCurrentBuffer())
+	const wchar_t* fullPath = filePath;
+	if (!fullPath && _pEditView && _pEditView->getCurrentBuffer())
 		fullPath = _pEditView->getCurrentBuffer()->getFullPathName();
 	if (!fullPath || fullPath[0] == L'\0')
 	{

@@ -287,8 +287,11 @@ public:
 	// otherwise decryptFile() is used.
 	void decryptAuto();
 
+	// Automatically decrypt an encrypted JSON or XML document after opening it.
+	void decryptEncryptedJsonXml(BufferID buffer);
+
 	// decrypt configuration file and open as new document
-	void decryptConfigFile();
+	void decryptConfigFile(const wchar_t* filePath = nullptr);
 
 	// Encrypt current document as config (binary) and save to disk
 	void encryptConfigFile();

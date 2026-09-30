@@ -82,6 +82,10 @@ Section un.explorerContextMenu
     RMDir  "$INSTDIR\contextmenu"
 SectionEnd
 
+!macro RemoveTextExtension EXT
+	DeleteRegValue HKCR "${EXT}\OpenWithProgids" "Notepad++_file"
+!macroend
+
 Section un.UnregisterFileExt
 	; Remove references to "Notepad++_file"
 	IntOp $1 0 + 0	; subkey index
@@ -108,15 +112,17 @@ Enum_HKCR_Loop:
 				StrCpy $3 "xmlfile"
 			${EndIf}
 		${EndIf}
-		${If} $3 == "Notepad++_file"
+		${If} $3 == ""
+			DeleteRegValue HKCR $2 ""
+		${ElseIf} $3 == "Notepad++_file"
 			; File type recovering has failed. Just discard the current file extension
 			DeleteRegKey HKCR $2
 		${Else}
 			; Restore the original file type
 			WriteRegStr HKCR $2 "" $3
 			DeleteRegValue HKCR $2 "Notepad++_backup"
-			IntOp $1 $1 + 1
 		${EndIf}
+		IntOp $1 $1 + 1
 	${Else}
 		IntOp $1 $1 + 1
 	${EndIf}
@@ -133,8 +139,21 @@ Enum_FileExts_Loop:
 	IntOp $1 $1 + 1
 	Goto Enum_FileExts_Loop
 Enum_FileExts_Done:
+	!insertmacro RemoveTextExtension ".txt"
+	!insertmacro RemoveTextExtension ".log"
+	!insertmacro RemoveTextExtension ".xml"
+	!insertmacro RemoveTextExtension ".json"
+	!insertmacro RemoveTextExtension ".ini"
+	!insertmacro RemoveTextExtension ".csv"
+	!insertmacro RemoveTextExtension ".md"
+	!insertmacro RemoveTextExtension ".yaml"
+	!insertmacro RemoveTextExtension ".yml"
+	!insertmacro RemoveTextExtension ".toml"
+	!insertmacro RemoveTextExtension ".cfg"
+	!insertmacro RemoveTextExtension ".conf"
 
 	; Remove "Notepad++_file" file type
+	DeleteRegKey HKCR "Applications\notepad++.exe"
 	DeleteRegKey HKCR "Notepad++_file"
 SectionEnd
 
@@ -202,6 +221,7 @@ Section Uninstall
 	;Remove from registry...
 	DeleteRegKey HKLM "${UNINSTALL_REG_KEY}"
 	DeleteRegKey HKLM "SOFTWARE\${APPNAME}"
+	DeleteRegValue HKLM "Software\RegisteredApplications" "${APPNAME}"
 	DeleteRegKey HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\notepad++.exe"
 
 	; Delete self

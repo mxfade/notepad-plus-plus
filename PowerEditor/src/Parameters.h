@@ -751,7 +751,7 @@ struct NppGUI final
 
 	bool _isMaximized = false;
 	int _isMinimizedToTray = sta_none;
-	bool _rememberLastSession = true; // remember next session boolean will be written in the settings
+	bool _rememberLastSession = false; // remember next session boolean will be written in the settings
 	bool _keepSessionAbsentFileEntries = false;
 	bool _isCmdlineNosessionActivated = false; // used for if -nosession is indicated on the launch time
 	bool _isFullReadOnly = false;
@@ -864,7 +864,7 @@ struct NppGUI final
 	int _fileSwitcherPathWidth = 50;
 	bool _fileSwitcherDisableListViewGroups = false;
 	bool isSnapshotMode() const { return _isSnapshotMode && _rememberLastSession && !_isCmdlineNosessionActivated; }
-	bool _isSnapshotMode = true;
+	bool _isSnapshotMode = false;
 	size_t _snapshotBackupTiming = 7000;
 	std::wstring _cloudPath; // this option will never be read/written from/to config.xml
 	unsigned char _availableClouds = '\0'; // this option will never be read/written from/to config.xml

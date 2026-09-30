@@ -30,6 +30,16 @@ SetCompressor /SOLID lzma	; This reduces installer size by approx 30~35%
 
 ; Installer is DPI-aware: not scaled by the DWM, no blurry text
 ManifestDPIAware true
+RequestExecutionLevel admin
+
+; Default to x64 when no architecture is explicitly selected.
+!ifndef ARCH64
+!ifndef ARCHARM64
+!ifndef ARCH32
+	!define ARCH64
+!endif
+!endif
+!endif
 
 Var winSysDir
 
@@ -91,6 +101,7 @@ page Custom ExtraOptions
 
 !define MUI_FINISHPAGE_RUN
 !define MUI_FINISHPAGE_RUN_FUNCTION "LaunchNpp"
+!define MUI_FINISHPAGE_RUN_NOTCHECKED
 !insertmacro MUI_PAGE_FINISH
 
 
@@ -112,6 +123,18 @@ Var relaunchNppAfterSilentInstall
 Section -"setPathAndOptionsSection" setPathAndOptionsSection
 	Call setPathAndOptions
 SectionEnd
+
+!macro RegisterTextExtension EXT
+	ReadRegStr $0 HKCR "${EXT}" ""
+	${If} $0 != "Notepad++_file"
+		${If} $0 != ""
+			WriteRegStr HKCR "${EXT}" "Notepad++_backup" "$0"
+		${EndIf}
+		WriteRegStr HKCR "${EXT}" "" "Notepad++_file"
+	${EndIf}
+	WriteRegStr HKCR "${EXT}\OpenWithProgids" "Notepad++_file" ""
+	WriteRegStr HKLM "Software\${APPNAME}\Capabilities\FileAssociations" "${EXT}" "Notepad++_file"
+!macroend
 
 !include "nsisInclude\autoCompletion.nsh"
 
@@ -156,6 +179,25 @@ Function .onInit
 !endif
 	;
 	; --- PATCH END ---
+
+	; Use the C: fallback only for the default path, never for an explicit /D= path.
+	${GetParameters} $R0
+	${GetOptions} $R0 "/D=" $R1
+	IfErrors 0 customInstallDir
+	StrCmp $INSTDIR "D:\Program Files\${APPNAME}" defaultInstallDir
+	StrCmp $INSTDIR "C:\Program Files\${APPNAME}" defaultInstallDir
+	StrCmp $INSTDIR "C:\Program Files (x86)\${APPNAME}" defaultInstallDir
+	Goto installDirDefaultDone
+defaultInstallDir:
+	System::Call 'kernel32::GetDriveType(t "D:\\") i .r0'
+	IntCmp $0 0 installDirFallbackToC
+	IntCmp $0 1 installDirFallbackToC
+	StrCpy $INSTDIR "D:\Program Files\${APPNAME}"
+	Goto installDirDefaultDone
+installDirFallbackToC:
+	StrCpy $INSTDIR "C:\Program Files\${APPNAME}"
+customInstallDir:
+installDirDefaultDone:
 
 	StrCpy $runningNppDetected "false" ; reset
 
@@ -323,6 +365,33 @@ Section -"Notepad++" mainSection
 
 SectionEnd
 
+Section -RegisterFileExt
+	WriteRegStr HKCR "Notepad++_file" "" "Notepad++ Document"
+	WriteRegStr HKCR "Notepad++_file\DefaultIcon" "" '"$INSTDIR\notepad++.exe",0'
+	WriteRegStr HKCR "Notepad++_file\shell\open\command" "" '"$INSTDIR\notepad++.exe" "%1"'
+	WriteRegStr HKCR "Applications\notepad++.exe" "FriendlyAppName" "Notepad++"
+	WriteRegStr HKCR "Applications\notepad++.exe\shell\open\command" "" '"$INSTDIR\notepad++.exe" "%1"'
+	WriteRegStr HKLM "Software\${APPNAME}\Capabilities" "ApplicationName" "${APPNAME}"
+	WriteRegStr HKLM "Software\${APPNAME}\Capabilities" "ApplicationDescription" "A free source code editor"
+	WriteRegStr HKLM "Software\${APPNAME}\Capabilities" "ApplicationIcon" '"$INSTDIR\notepad++.exe",0'
+	WriteRegStr HKLM "Software\RegisteredApplications" "${APPNAME}" "Software\${APPNAME}\Capabilities"
+
+	!insertmacro RegisterTextExtension ".txt"
+	!insertmacro RegisterTextExtension ".log"
+	!insertmacro RegisterTextExtension ".xml"
+	!insertmacro RegisterTextExtension ".json"
+	!insertmacro RegisterTextExtension ".ini"
+	!insertmacro RegisterTextExtension ".csv"
+	!insertmacro RegisterTextExtension ".md"
+	!insertmacro RegisterTextExtension ".yaml"
+	!insertmacro RegisterTextExtension ".yml"
+	!insertmacro RegisterTextExtension ".toml"
+	!insertmacro RegisterTextExtension ".cfg"
+	!insertmacro RegisterTextExtension ".conf"
+
+	System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
+SectionEnd
+
 ; Please **DONOT** move this function (SetRoughEstimation) anywhere else
 ; Just keep it right after the "mainSection" section
 ; Otherwise rough estimation for copyCommonFiles will not be set
@@ -365,6 +434,7 @@ ${MementoSection} "Context Menu Entry" explorerContextMenu
 
 	; Shell context menu entry
 	WriteRegStr HKCR "*\shell\ANotepad++64" "" "Notepad++ Context menu"
+	WriteRegStr HKCR "*\shell\ANotepad++64" "Icon" '"$INSTDIR\notepad++.exe",0'
 	WriteRegStr HKCR "*\shell\ANotepad++64" "ExplorerCommandHandler" "{B298D29A-A6ED-11DE-BA8C-A68E55D89593}"
 	WriteRegStr HKCR "*\shell\ANotepad++64" "NeverDefault" ""
 
@@ -389,14 +459,26 @@ ${MementoSectionDone}
 Function RegisterMSIX
 	; Windows 11 (build 22000+) is required for modern context menu via MSIX
 	${If} ${AtLeastWin11}
-		; Get PowerShell path from the Registry
+		${If} ${RunningX64}
+			StrCpy $0 "$WINDIR\Sysnative\WindowsPowerShell\v1.0\powershell.exe"
+			IfFileExists "$0" powerShellPathReady
+		${EndIf}
+		; Get PowerShell path from the Registry if the native path is unavailable
 		ReadRegStr $0 HKLM "SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell" "Path"
+		${If} $0 == ""
+			StrCpy $0 "$WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe"
+		${EndIf}
+powerShellPathReady:
 
         ; Pass INSTDIR as an environment variable
         System::Call 'kernel32::SetEnvironmentVariableW(w "NPP_INSTDIR", w "$INSTDIR")'
 
 		; Use PowerShell to register a modern Windows 11 right-click context menu silently
         nsExec::ExecToLog '"$0" -Command "Add-AppxPackage -Path \"$$env:NPP_INSTDIR\contextMenu\NppShell.msix\" -ExternalLocation \"$$env:NPP_INSTDIR\contextMenu\""'
+		Pop $1
+		${If} $1 != 0
+			DetailPrint "Failed to register the Notepad++ Windows 11 context menu (PowerShell exit code $1)."
+		${EndIf}
 
 		; Wait 2 seconds for the AppX service to finish indexing the new identity
 		Sleep 2000

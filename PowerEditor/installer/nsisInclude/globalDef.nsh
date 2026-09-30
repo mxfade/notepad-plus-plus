@@ -67,6 +67,6 @@
 ; Main Install settings
 Name "${APPNAMEANDVERSION}"
 
-InstallDir "$PROGRAMFILES\${APPNAME}"
+InstallDir "D:\Program Files\${APPNAME}"
 
 InstallDirRegKey HKLM "Software\${APPNAME}" ""

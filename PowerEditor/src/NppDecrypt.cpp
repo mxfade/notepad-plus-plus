@@ -727,16 +727,21 @@ void Notepad_plus::decryptConfigFile()
 	{
 		std::string outUtf8 = WideToUtf8(plain);
 		pView->execute(SCI_SETTEXT, 0, reinterpret_cast<LPARAM>(outUtf8.c_str()));
+		// simulate user selecting menu: Encoding -> UTF-8
+		if (_pPublicInterface)
+		{
+			::SendMessageW(_pPublicInterface->getHSelf(), WM_COMMAND, MAKEWPARAM(IDM_FORMAT_UTF_8, 0), 0);
+		}
 	}
 	// rename the new untitled tab to original file name + "_解密"
-	{
-		/*const wchar_t* origName = nullptr;*/
-		if (_pEditView && _pEditView->getCurrentBuffer())
-		{
-			// before fileNew() the current buffer was the original one; but after fileNew() current buffer is new
-			// we saved original file name by reading from previous buffer earlier: try to get from pView (we used pView initially)
-		}
-		
-		//fileRenameUntitledPluginAPI(BUFFER_INVALID, newTabName.c_str());
-	}
+	//{
+	//	/*const wchar_t* origName = nullptr;*/
+	//	if (_pEditView && _pEditView->getCurrentBuffer())
+	//	{
+	//		 before fileNew() the current buffer was the original one; but after fileNew() current buffer is new
+	//		 we saved original file name by reading from previous buffer earlier: try to get from pView (we used pView initially)
+	//	}
+	//	
+	//	fileRenameUntitledPluginAPI(BUFFER_INVALID, newTabName.c_str());
+	//}
 }
